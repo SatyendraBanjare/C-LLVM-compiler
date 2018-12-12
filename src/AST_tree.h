@@ -68,19 +68,19 @@ enum Valid_Type {
     V_FUNC,
 };
 
-class ASTNode {
+class RootAST {
 public:
-    ASTNode() {};
-    virtual ~ASTNode(){};
+    RootAST() {};
+    virtual ~RootAST(){};
     virtual Value *codegen() = 0;
 };
 
-class ExprNode: public ASTNode {
+class ExprNode: public RootAST {
 public:
     Valid_Type _type;
 };
 
-class StatementNode: public ASTNode {};
+class StatementNode: public RootAST {};
 
 class IntExprNode: public ExprNode {
 public:
