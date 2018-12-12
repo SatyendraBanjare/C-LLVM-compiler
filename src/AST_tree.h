@@ -57,8 +57,119 @@
 using namespace llvm;
 using namespace std;
 
+enum Valid_Type {
+    V_UNKNOWN = -1,
+    V_VOID = 0,
+    V_CONST,
+    V_CHAR,
+    V_INT,
+    V_FLOAT,
+    V_PTR,
+    V_FUNC,
+};
 
+class ASTNode {
+public:
+    ASTNode() {};
+    virtual ~ASTNode(){};
+    virtual Value *codegen() = 0;
+};
 
+class ExprNode: public ASTNode {
+public:
+    Valid_Type _type;
+};
 
+class StatementNode: public ASTNode {};
+
+class IntExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class CharExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class DoubleExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class VariableExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class OperatorExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class BlockExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class AssignExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class FuncExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class CastExprNode: public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class ExprStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class ReturnStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class VarDecStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class ArrayDecStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class IndexExprNode : public ExprNode {
+public:
+    virtual Value *codegen();
+};
+
+class FuncDecStatementNode : public StatementNode { 
+public:
+    virtual Value *codegen();
+};
+
+class ExternFuncDecStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class IfStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
+
+class ForStatementNode : public StatementNode {
+public:
+    virtual Value *codegen();
+};
 
 #endif
