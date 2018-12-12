@@ -8,6 +8,9 @@ It is a simple multipass static C compiler capable of handling loops & contextua
 ![Flow Diagram](flowdiagram.png)
 
 ## References :
+
+https://github.com/ShichenLiu/C-compiler
+
 http://aquamentus.com/tut_lexyacc.html
 
 http://dinosaur.compilertools.net/flex/flex_11.html
