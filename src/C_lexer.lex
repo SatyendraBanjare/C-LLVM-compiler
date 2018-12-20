@@ -45,7 +45,6 @@
                                 }
 [_A-Za-z][_0-9A-Za-z]*          { yylval.string = new string(yytext, yyleng); return VAR; }
 [0-9]+                          { yylval.string = new string(yytext, yyleng); return CINT; }
-[0-9]+\.[0-9]*                  { yylval.string = new string(yytext, yyleng); return CDOUBLE; }
 [0-9]+\.[0-9]*                  { yylval.string = new string(yytext, yyleng); return CFLOAT; }
 ['].[']                         {
                                     yylval.string = new string(yytext, yyleng);
@@ -90,10 +89,10 @@
 "~"                             return TOKEN(BIT_COMP);
 "^"                             return TOKEN(BIT_XOR);
 
-"+="                            return TOKEN(ADD_ASS);
-"-="                            return TOKEN(SUB_ASS);
-"*="                            return TOKEN(MUL_ASS);
-"/="                            return TOKEN(DIV_ASS);
+"+="                            return TOKEN(ADD_SELF);
+"-="                            return TOKEN(SUB_SELF);
+"*="                            return TOKEN(MUL_SELF);
+"/="                            return TOKEN(DIV_SELF);
 
 "++"                            return TOKEN(INCREMENT_OP);
 "--"                            return TOKEN(DECREMENT_OP);
