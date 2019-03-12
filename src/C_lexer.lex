@@ -1,10 +1,10 @@
 %{
     #include <string>
     #include <iostream>
-    
+    #include "AST_tree.h"
+    #include "C_syntax.hpp"
     #define TOKEN(t)    (yylval.token = t)
-    
-    extern int LineNumber;
+    extern int lineNumber;
 %}
 
 %option noyywrap
@@ -13,39 +13,42 @@
 
 %%
 
-[ \t\r]*                        ;
+"/*"                    BEGIN(comment);
 
-"\n"                            LineNumber += 1;
+<comment>[^*\n]*        /* eat anything that's not a '*' */
+<comment>"*"+[^*/\n]*   /* eat up '*'s not followed by '/'s */
+<comment>\n             ++lineNumber;
+<comment>"*"+"/"        BEGIN(INITIAL);
 
-^"#include ".+                  ;
+"//"                    BEGIN(comment_oneline);
+<comment_oneline>\n     BEGIN(INITIAL);
 
-
-"/*"                            BEGIN(comment);
-<comment>[^*\n]*                /* eat anything that's not a '*' */
-<comment>"*"+[^*/\n]*           /* eat up '*'s not followed by '/'s */
-<comment>\n                     ++LineNumber;
-<comment>"*"+"/"                BEGIN(INITIAL);
-
-
-"//"                            BEGIN(comment_oneline);
-<comment_oneline>\n             BEGIN(INITIAL);
-
+"extern"                        return TOKEN(EXTERN);
+"return"                        return TOKEN(RETURN);
 
 "int"                           { yylval.string = new string(yytext, yyleng); return INT; }
-"float"                         { yylval.string = new string(yytext, yyleng); return FLOAT; }
+"double"                        { yylval.string = new string(yytext, yyleng); return DOUBLE; }
 "char"                          { yylval.string = new string(yytext, yyleng); return CHAR; }
 "void"                          { yylval.string = new string(yytext, yyleng); return VOID; }
 
+"const"                         { yylval.string = new string(yytext, yyleng); return CONST; }
+
+"if"                            return TOKEN(IF);
+"else"                          return TOKEN(ELSE);
+"for"                           return TOKEN(FOR);
+"while"                         return TOKEN(WHILE);
+"break"                         return TOKEN(BREAK);
+"continue"                      return TOKEN(CONTINUE);
 
 ["].*["]                        {
                                     yylval.string = new string(yytext, yyleng);
                                     yylval.string->erase(yylval.string->begin());
                                     yylval.string->erase(yylval.string->end() - 1);
-                                    return CSTRING;
+                                    return CSTR;
                                 }
 [_A-Za-z][_0-9A-Za-z]*          { yylval.string = new string(yytext, yyleng); return VAR; }
 [0-9]+                          { yylval.string = new string(yytext, yyleng); return CINT; }
-[0-9]+\.[0-9]*                  { yylval.string = new string(yytext, yyleng); return CFLOAT; }
+[0-9]+\.[0-9]*                  { yylval.string = new string(yytext, yyleng); return CDOUBLE; }
 ['].[']                         {
                                     yylval.string = new string(yytext, yyleng);
                                     yylval.string->erase(yylval.string->begin());
@@ -53,25 +56,21 @@
                                     return CCHAR;
                                 }
 
-"if"                            return TOKEN(IF);
-"else"                          return TOKEN(ELSE);
-"for"                           return TOKEN(FOR);
+"("                             return TOKEN(LPAREN);
+")"                             return TOKEN(RPAREN);
+"["                             return TOKEN(LBRACK);
+"]"                             return TOKEN(RBRACK);
+"{"                             return TOKEN(LBRACE);
+"}"                             return TOKEN(RBRACE);
 
-"("                             return TOKEN(LEFT_PAREN);
-")"                             return TOKEN(RIGHT_PAREN);
-"["                             return TOKEN(LEFT_BRACK);
-"]"                             return TOKEN(RIGHT_BRACK);
-"{"                             return TOKEN(LEFT_BRACE);
-"}"                             return TOKEN(RIGHT_BRACE);
+"="                             return TOKEN(EQUAL);
 
-"="                             return TOKEN(ASSIGNMENT);
-
-"=="                            return TOKEN(EQUAL);
-"!="                            return TOKEN(NEQUAL);
-">"                             return TOKEN(GREATER_THAN);
-">="                            return TOKEN(GREATER_THAN_EQUAL);
-"<"                             return TOKEN(LESS_THAN);
-"<="                            return TOKEN(LESS_THAN_EQUAL);
+"=="                            return TOKEN(EQ);
+"!="                            return TOKEN(NE);
+">"                             return TOKEN(GR);
+">="                            return TOKEN(GE);
+"<"                             return TOKEN(LW);
+"<="                            return TOKEN(LE);
 
 "&&"                            return TOKEN(AND);
 "||"                            return TOKEN(OR);
@@ -84,26 +83,31 @@
 
 "&"                             return TOKEN(BIT_AND);
 "|"                             return TOKEN(BIT_OR);
-">>"                            return TOKEN(BIT_SHIFT_RIGHT);
-"<<"                            return TOKEN(BIT_SHIFT_LEFT);
-"~"                             return TOKEN(BIT_COMP);
 "^"                             return TOKEN(BIT_XOR);
 
-"+="                            return TOKEN(ADD_SELF);
-"-="                            return TOKEN(SUB_SELF);
-"*="                            return TOKEN(MUL_SELF);
-"/="                            return TOKEN(DIV_SELF);
+">>"                            return TOKEN(BIT_SHIFT_RIGHT);
+"<<"                            return TOKEN(BIT_SHIFT_LEFT);
+
 
 "++"                            return TOKEN(INCREMENT_OP);
 "--"                            return TOKEN(DECREMENT_OP);
+
+"+="                            return TOKEN(SADD);
+"-="                            return TOKEN(SSUB);
+"*="                            return TOKEN(SMUL);
+"/="                            return TOKEN(SDIV);
 
 "."                             return TOKEN(DOT);
 ","                             return TOKEN(COMMA);
 ":"                             return TOKEN(COLON);
 ";"                             return TOKEN(SEMICOLON);
 
-.                               cout << "Unknown token! " << yytext << endl; yyterminate();
+[ \t\r]*                        ;
 
-"return"                        return TOKEN(RETURN);
+"\n"                            lineNumber += 1;
+
+^"#include ".+                  ;
+
+.                               cout << "Unknown token! " << yytext << endl; yyterminate();
 
 %%
