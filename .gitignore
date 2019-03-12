@@ -1,0 +1,6 @@
+src/c_code/
+
+src/*.o
+src/*.ll
+src/*.hpp
+src/compiler
