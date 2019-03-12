@@ -1,17 +1,39 @@
-#include <istream>
+#include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include "AST_tree.h"
 
 using namespace std;
 using namespace llvm;
 
-extern FILE* file_name;
+extern FILE* yyin;
+extern BlockExprNode* root;
+extern int yyparse();
+extern void linkExternalFunctions(GenContext &context);
 
-int main(int argc, char const *argv[])
-{
-	// Handle file
-	file_name = fopen(filename, "r");
-	if (!file_name) {
+void usage() {
+	cout << "\nusage: ./compiler  <filename.c>\n" << endl;
+}
+
+int main(int argc, char **argv) {
+	char *filename;
+	
+	// check args
+	if (argc == 2) {
+		filename = argv[1];
+	} else {
+		usage();
+		return 0;
+	}
+
+	// check filename
+	int len = strlen(filename);
+	if (filename[len - 1] != 'c' || filename[len - 2] != '.') {
+		usage();
+		return 0;
+	}
+	yyin = fopen(filename, "r");
+	if (!yyin) {
         perror("File opening failed");
         return EXIT_FAILURE;
     }
@@ -19,16 +41,19 @@ int main(int argc, char const *argv[])
 		cout << "ERROR!" << endl;
 		return EXIT_FAILURE;
 	}
-
+	
 	GenContext context;
-	context.CodeGen(*root);
-
-	// ADD JIT flavour compilation.
 	InitializeNativeTarget();
 	InitializeNativeTargetAsmPrinter();
 	InitializeNativeTargetAsmParser();
+	linkExternalFunctions(context);
+	cout << "Generating LLVM code" << endl;
+	cout << "--------------------" << endl;
+	context.CodeGen(*root);
+	cout << endl;
+	cout << "--------------------" << endl;
+	cout << "Finished" << endl;
 
-	// Emit the generated llvm IR
 	filename[len-1] = 'l';
 	filename[len] = 'l';
 	filename[len+1] = '\0';
@@ -37,8 +62,15 @@ int main(int argc, char const *argv[])
 	context.OutputCode(outfile);
 	outfile.close();
 
+	cout << "Run LLVM code" << endl;
+	cout << "-------------" << endl;
 	context.run();
-	fclose(file_name);
+	cout << endl;
+	cout << "-------------" << endl;
+	cout << "Rnd LLVM code ends" << endl;
+	cout << "Finished" << endl;
+
+	fclose(yyin);
 
 	return 0;
 }
