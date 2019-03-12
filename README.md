@@ -2,10 +2,15 @@
 
 A hobby project for learning to use LLVM. 
 
+![Flow Diagram](flowdiagram.png)
+
 It is a simple multipass static C compiler capable of handling loops & contextual semantics that emits LLVM-IR. The only form of IO implemented is "print" function. JIT flavored compilation is supported.
 
+Different Features such as loop, conditional statements, binary operations both bitwise and normal are implemented. Commenting in both the form i.e Single line and multiline, similar to C is also implemented.
 
-![Flow Diagram](flowdiagram.png)
+
+## ToDo :
+- Add switch-break feature.
 
 ## References :
 
