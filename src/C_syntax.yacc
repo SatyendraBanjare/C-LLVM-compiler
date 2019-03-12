@@ -2,44 +2,24 @@
     #include <cstdio>
     #include <cstdlib>
     #include <iostream>
+    #include <map>
+    #include "AST_tree.h"
+
+    BlockExprNode *root;
 
     void yyerror(char *) {};
+
     int yylex(void);
 
     int lineNumber = 1;
+    map<string, E_TYPE> varTable;
+    void addNewVar(string name, E_TYPE type);
+    string typeStr(E_TYPE type);
+
+    void setVarType(VariableExprNode *);
+    E_TYPE checkExprType(ExprNode *lhs, ExprNode *rhs);
     void noSemicolonError();
 %}
-
-%token <string> INT FLOAT CHAR VOID                                                    /* Type Names */
-%token <string> CSTRING CINT CDOUBLE CCHAR                                             /* Constants */
-%token <string> VAR                                                                    /* Variables */
-%token <token> IF ELSE FOR                                                             /* Control Flows */
-%token <token> LEFT_PAREN RIGHT_PAREN LEFT_BRACK RIGHT_BRACK LEFT_BRACE RIGHT_BRACE    /* Enclosures */
-%token <token> EQUAL NEQUAL GREATER_THAN GREATER_THAN_EQUAL LESS_THAN LESS_THAN_EQUAL AND OR ASSIGNMENT ADD SUB MUL DIV MODULO                                                                                 /* Binary Operators */
-%token <token> BIT_AND BIT_OR BIT_SHIFT_RIGHT BIT_SHIFT_LEFT BIT_COMP BIT_XOR          /* Bitwise Operators */
-%token <token> ADD_SELF SUB_SELF MUL_SELF DIV_SELF INCREMENT_OP DECREMENT_OP               /* Self Operators */
-%token <token> DOT COMMA COLON SEMICOLON                                               /* Ending Symbols */
-%token <token> RETURN                                                                  /* Others */
-
-%left ASSIGNMENT
-%left EQUAL NEQUAL GREATER_THAN GREATER_THAN_EQUAL LESS_THAN LESS_THAN_EQUAL
-%left AND OR
-%left ADD SUB ADD_SELF SUB_SELF MUL DIV MUL_SELF DIV_SELF
-%left BIT_AND BIT_OR BIT_SHIFT_RIGHT BIT_SHIFT_LEFT BIT_COMP BIT_XOR
-
-%nonassoc LOWER_THAN_ELSE
-%nonassoc ELSE
-
-%type <var> variable type
-%type <vars> function_args
-%type <expr> expr const logic_expr
-%type <exprs> invoke_args
-%type <block> program block global_block local_block
-%type <statement> global_statement local_statement
-%type <statement> variable_declaration
-%type <statement> array_declaration function_declaration extern_function_declaration
-%type <statement> condition loop
-%type <token> compare
 
 %union {
     int token;
@@ -52,6 +32,41 @@
     StatementNode *statement;
     VarDecStatementNode *var_dec;
 }
+
+%token <string> INT DOUBLE CHAR VOID CONST                                  /* Basic Type Names */
+%token <string> CSTR CINT CDOUBLE CCHAR                                     /* Const Literal */
+%token <string> VAR                                                         /* Variable Names */
+%token <token> IF ELSE FOR WHILE BREAK CONTINUE                             /* Flow Controllers */
+%token <token> LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE                    /* Enclosures */
+%token <token> EQ NE GR GE LW LE AND OR EQUAL ADD SUB MUL DIV MODULO        /* Binary Operators */
+%token <token> BIT_AND BIT_OR BIT_SHIFT_RIGHT BIT_SHIFT_LEFT BIT_XOR        /* Logical Operators */
+%token <token> SADD SSUB SMUL SDIV                                          /* Self Operators */
+%token <token> DOT COMMA COLON SEMICOLON                                    /* Endings */
+%token <token> EXTERN RETURN                                                /* Others */
+%token <token> INCREMENT_OP DECREMENT_OP
+
+%type <var> variable type
+%type <vars> function_args
+%type <expr> expr const logic_expr
+%type <exprs> invoke_args
+%type <block> program block global_block local_block
+%type <statement> global_statement local_statement
+%type <statement> variable_declaration
+%type <statement> array_declaration function_declaration extern_function_declaration
+%type <statement> condition loop
+%type <token> compare
+
+%left EQUAL
+%left EQ NE GR GE LW LE
+%left AND OR
+%left ADD SUB SADD SSUB
+%left MUL DIV SMUL SDIV MODULO
+%left BIT_AND BIT_OR BIT_SHIFT_RIGHT BIT_SHIFT_LEFT BIT_COMP BIT_XOR
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+%%
 
 program: global_block { root = $1; };
 
@@ -113,6 +128,12 @@ expr: variable                                  { $<var>$ = $1; }
     | expr SUB expr                             { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
     | expr MUL expr                             { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
     | expr DIV expr                             { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr MODULO expr                          { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr BIT_AND expr                         { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr BIT_OR expr                          { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr BIT_SHIFT_RIGHT expr                 { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr BIT_SHIFT_LEFT expr                  { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
+    | expr BIT_XOR expr                         { $$ = new OperatorExprNode($1, $2, $3); $$->_type = checkExprType($1, $3); }
     | variable SADD expr                        { $$ = new OperatorExprNode($1, $2, $3); $$ = new AssignExprNode($1, $$); setVarType($1); $$->_type = checkExprType($1, $3);}
     | variable SSUB expr                        { $$ = new OperatorExprNode($1, $2, $3); $$ = new AssignExprNode($1, $$); setVarType($1); $$->_type = checkExprType($1, $3);}
     | variable SMUL expr                        { $$ = new OperatorExprNode($1, $2, $3); $$ = new AssignExprNode($1, $$); setVarType($1); $$->_type = checkExprType($1, $3);}
@@ -139,21 +160,23 @@ condition: IF LPAREN logic_expr RPAREN block %prec LOWER_THAN_ELSE   { $$ = new 
          | IF LPAREN logic_expr RPAREN block ELSE block { $$ = new IfStatementNode($3, $5, $7); }
          ;
 
-loop: FOR LPAREN expr SEMICOLON logic_expr SEMICOLON expr RPAREN block  { $$ = new ForStatementNode($3, $5, $7, $9); } ;
+loop: FOR LPAREN expr SEMICOLON logic_expr SEMICOLON expr RPAREN block  { $$ = new ForStatementNode($3, $5, $7, $9); }
+    | WHILE LPAREN logic_expr RPAREN block                              { $$ = new WhileStatementNode($3, $5); }
+    ;
 
 const: CINT         { $$ = new IntExprNode(atoi($1->c_str())); delete $1; }
-     | CFLOAT       { $$ = new DoubleExprNode(atoi($1->c_str())); delete $1; }
+     | CDOUBLE      { $$ = new DoubleExprNode(atoi($1->c_str())); delete $1; }
      | CCHAR        { $$ = new CharExprNode($1->front()); delete $1; }
      | SUB CINT     { $$ = new IntExprNode(-atol($2->c_str())); delete $2; }
-     | SUB CFLOAT   { $$ = new IntExprNode(-atof($2->c_str())); delete $2; }
+     | SUB CDOUBLE  { $$ = new IntExprNode(-atof($2->c_str())); delete $2; }
      ;
 
-compare: EQUAL                     { $$ = $1; }
-       | NEQUAL                    { $$ = $1; }
-       | GREATER_THAN              { $$ = $1; }
-       | GREATER_THAN_EQUAL        { $$ = $1; }
-       | LESS_THAN                 { $$ = $1; }
-       | LESS_THAN_EQUAL           { $$ = $1; }
+compare: EQ         { $$ = $1; }
+       | NE         { $$ = $1; }
+       | GR         { $$ = $1; }
+       | GE         { $$ = $1; }
+       | LW         { $$ = $1; }
+       | LE         { $$ = $1; }
        ;
 
 invoke_args: /* NULL */             { $$ = new vector<ExprNode*>(); }
@@ -168,53 +191,53 @@ logic_expr: logic_expr OR logic_expr    { $$ = new OperatorExprNode($1, $2, $3);
 
 %%
 
-void addNewVar(string name, Valid_Type type) {
-  map<string, Valid_Type>::iterator it;
+void addNewVar(string name, E_TYPE type) {
+  map<string, E_TYPE>::iterator it;
   it = varTable.find(name);
   if (it == varTable.end()) {
     varTable[name] = type;
-  } else if (type == V_FUNC) {
+  } else if (type == E_FUNC) {
     varTable[name] = type;
   } else {
     cout << "line " << lineNumber << ": redefinition of variable " << name << " from (" << typeStr((*it).second) << ") to (" << typeStr(type) << ")." << endl;
     varTable[name] = type;
   }
 }
-string typeStr(Valid_Type type) {
+string typeStr(E_TYPE type) {
     switch (type) {
-    case V_VOID:
+    case E_VOID:
         return "void";
-    case V_CONST:
+    case E_CONST:
         return "const";
-    case V_INT:
+    case E_INT:
         return "int";
-    case V_CHAR:
+    case E_CHAR:
         return "char";
-    case V_DOUBLE:
+    case E_DOUBLE:
         return "double";
-    case V_PTR:
+    case E_PTR:
         return "pointer";
-    case V_FUNC:
+    case E_FUNC:
         return "function part";
     default:
         return "unknown";
     }
 }
 
-Valid_Type checkExprType(ExprNode *lhs, ExprNode *rhs) {
-  if (lhs->_type == V_UNKNOWN) {
+E_TYPE checkExprType(ExprNode *lhs, ExprNode *rhs) {
+  if (lhs->_type == E_UNKNOWN) {
     cout << "line " << lineNumber << ": unknown expression type on lhs" << endl;
     return E_UNKNOWN;
   }
-  if (rhs->_type == V_UNKNOWN) {
+  if (rhs->_type == E_UNKNOWN) {
     cout << "line " << lineNumber << ": unknown expression type on rhs" << endl;
     return E_UNKNOWN;
   }
-  Valid_Type i, j;
+  E_TYPE i, j;
   i = lhs->_type > rhs->_type ? rhs->_type : lhs->_type;   // smaller one
   j = lhs->_type < rhs->_type ? rhs->_type : lhs->_type;   // bigger one
 
-  if (j == V_FUNC) {
+  if (j == E_FUNC) {
     return i;
   }
   if (i != j) {
@@ -228,17 +251,17 @@ void noSemicolonError() {
 }
 
 void setVarType(VariableExprNode *var){
-  map<string, Valid_Type>::iterator it;
+  map<string, E_TYPE>::iterator it;
   it = varTable.find(var->name);
   if (it == varTable.end()) {
-    var->_type = V_UNKNOWN;
+    var->_type = E_UNKNOWN;
   } else {
     var->_type = (*it).second;
   }
 }
 
 void printVarTable() {
-  std::map<std::string, Valid_Type>::iterator it;
+  std::map<std::string, E_TYPE>::iterator it;
   for (it = varTable.begin(); it != varTable.end(); it++) {
     cout << (*it).first << " : " << typeStr((*it).second) << std::endl;
   }
